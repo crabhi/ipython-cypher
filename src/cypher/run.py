@@ -28,6 +28,7 @@ from cypher.utils import (
     DefaultConfigurable, DEFAULT_CONFIGURABLE, StringIO,
     string_types
 )
+import cypher.interactive_graph as ig
 
 
 def unduplicate_field_names(field_names):
@@ -324,6 +325,9 @@ class ResultSet(list, ColumnGuesserMixin):
                   node_colors, loc=(-0.25, 1), numpoints=1, frameon=False)
         ax.set_axis_off()
         return graph, ax, nodes
+
+    def interactive_graph(self, *args, **kwargs):
+        return ig.InteractiveGraph(self._results.graph, *args, **kwargs)
 
     def pie(self, key_word_sep=" ", title=None, **kwargs):
         """Generates a pylab pie chart from the result set.
