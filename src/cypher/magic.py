@@ -3,7 +3,7 @@ import re
 from IPython.core.magic import (Magics, magics_class, cell_magic, line_magic,
                                 needs_local_scope)
 from IPython.config.configurable import Configurable
-from IPython.utils.traitlets import Bool, Int, Unicode
+from IPython.utils.traitlets import Bool, Int, Unicode, Enum
 try:
     from pandas.core.frame import DataFrame, Series
 except ImportError:
@@ -31,7 +31,7 @@ class CypherMagic(Magics, Configurable):
         Set the table printing style to any of prettytable's defined styles
         (currently DEFAULT, MSWORD_FRIENDLY, PLAIN_COLUMNS, RANDOM)
     """)
-    short_errors = Bool(defaults.short_errors, config=True, help="""
+    short_errors = Bool(defaults.short_errors, help="""
         Don't display the full traceback on Neo4j errors
     """)
     data_contents = Bool(defaults.data_contents, config=True, help="""
@@ -41,23 +41,26 @@ class CypherMagic(Magics, Configurable):
         Automatically limit the number of rows displayed
         (full result set is still stored)
     """)
-    auto_pandas = Bool(defaults.auto_pandas, config=True, help="""
-        Return Pandas DataFrame instead of regular result sets
-    """)
-    auto_html = Bool(defaults.auto_html, config=True, help="""
-        Return a D3 representation of the graph instead of regular result sets
-    """)
-    auto_networkx = Bool(defaults.auto_networkx, config=True, help="""
-        Return Networkx MultiDiGraph instead of regular result sets
+    auto_pandas = False
+    auto_html = False
+    auto_networkx = False
+    auto_result = Enum((None, "pandas", "html", "graph"), default_value=None, config=True, help="""
+        Automatically convert the result set into one of the representations.
     """)
     rest = Bool(defaults.rest, config=True, help="""
         Return full REST representations of objects inside the result sets
     """)
     feedback = Bool(defaults.feedback, config=True, help="""
-        Print number of rows affected
+        Print number of rows affected.
     """)
     uri = Unicode(defaults.uri, config=True, help="""
         Default database URL if none is defined inline
+    """)
+    username = Unicode("neo4j", config=True, help="""
+        User name to connect to the neo4j database
+    """)
+    password = Unicode(None, allow_none=True, config=True, help="""
+        Password to connect to the neo4j database
     """)
 
     def __init__(self, shell):
@@ -100,7 +103,7 @@ class CypherMagic(Magics, Configurable):
         user_ns = self.shell.user_ns
         user_ns.update(local_ns)
         parsed = parse("""{0}\n{1}""".format(line, cell), self)
-        conn = Connection.get(parsed['as'] or parsed['uri'])
+        conn = Connection.get(parsed['as'] or parsed['uri'], user=self.username, passw=self.password)
         first_word = parsed['cypher'].split(None, 1)[:1]
         if first_word and first_word[0].lower() == 'persist':
             return self._persist_dataframe(parsed['cypher'], conn, user_ns)
